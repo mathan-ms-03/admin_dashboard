@@ -1,5 +1,6 @@
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
+import Toast from "../common/Toast";
 
 export default function Layout({ children }) {
   return (
@@ -11,6 +12,7 @@ export default function Layout({ children }) {
           {children}
         </main>
       </div>
+      <Toast />
     </div>
   );
 }

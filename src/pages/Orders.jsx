@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { Download, Search } from "lucide-react";
-import { recentOrders } from "../data/mockData";
+import { useApp } from "../hooks/useApp";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Button from "../components/common/Button";
 
 const statusKeys = ["All", "Delivered", "Processing", "Shipped", "Pending", "Cancelled"];
 
 export default function Orders() {
+  const { orders, showToast } = useApp();
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
 
-  const filtered = recentOrders.filter((o) => {
+  const filtered = orders.filter((o) => {
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
     const matchSearch =
       o.customer.toLowerCase().includes(search.toLowerCase()) ||
@@ -23,6 +24,37 @@ export default function Orders() {
     .filter((o) => o.status === "Delivered")
     .reduce((sum, o) => sum + parseFloat(o.amount.replace(/[$,]/g, "")), 0);
 
+  const handleExportCSV = () => {
+    if (filtered.length === 0) {
+      showToast("No orders to export", "error");
+      return;
+    }
+
+    const headers = ["Order ID", "Customer", "Product", "Amount", "Status", "Date"];
+    const rows = filtered.map((o) => [
+      `"${o.id}"`,
+      `"${o.customer}"`,
+      `"${o.product}"`,
+      `"${o.amount}"`,
+      `"${o.status}"`,
+      `"${o.date}"`,
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `orders_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(`Exported ${filtered.length} orders to CSV successfully!`, "success");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -33,16 +65,30 @@ export default function Orders() {
             Track and manage all customer orders
           </p>
         </div>
-        <Button icon={Download} variant="outline">Export CSV</Button>
+        <Button icon={Download} variant="outline" onClick={handleExportCSV}>
+          Export CSV
+        </Button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Orders",   value: recentOrders.length,   color: "text-brand-600 dark:text-brand-400" },
-          { label: "Delivered",      value: recentOrders.filter((o) => o.status === "Delivered").length,   color: "text-emerald-600 dark:text-emerald-400" },
-          { label: "Pending",        value: recentOrders.filter((o) => o.status === "Pending").length,     color: "text-amber-600 dark:text-amber-400" },
-          { label: "Revenue (Delivered)", value: `$${totalRevenue.toLocaleString()}`, color: "text-violet-600 dark:text-violet-400" },
+          { label: "Total Orders", value: orders.length, color: "text-brand-600 dark:text-brand-400" },
+          {
+            label: "Delivered",
+            value: orders.filter((o) => o.status === "Delivered").length,
+            color: "text-emerald-600 dark:text-emerald-400",
+          },
+          {
+            label: "Pending",
+            value: orders.filter((o) => o.status === "Pending").length,
+            color: "text-amber-600 dark:text-amber-400",
+          },
+          {
+            label: "Revenue (Delivered)",
+            value: `$${totalRevenue.toLocaleString()}`,
+            color: "text-violet-600 dark:text-violet-400",
+          },
         ].map(({ label, value }) => (
           <div key={label} className="card p-4 text-center animate-fade-in">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>

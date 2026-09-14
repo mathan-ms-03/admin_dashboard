@@ -3,7 +3,7 @@ export default function Button({
   variant = "primary",
   size = "md",
   icon: Icon,
-  iconRight,
+  iconRight: IconRight,
   loading = false,
   disabled = false,
   onClick,
@@ -39,7 +39,7 @@ export default function Button({
         <Icon className="w-4 h-4 flex-shrink-0" />
       )}
       {children}
-      {iconRight && <iconRight className="w-4 h-4 flex-shrink-0" />}
+      {IconRight && <IconRight className="w-4 h-4 flex-shrink-0" />}
     </button>
   );
 }

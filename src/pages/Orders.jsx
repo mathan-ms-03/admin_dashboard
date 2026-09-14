@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Search } from "lucide-react";
+import { Download, Search, Plus, X, Check } from "lucide-react";
 import { useApp } from "../hooks/useApp";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Button from "../components/common/Button";
@@ -7,9 +7,17 @@ import Button from "../components/common/Button";
 const statusKeys = ["All", "Delivered", "Processing", "Shipped", "Pending", "Cancelled"];
 
 export default function Orders() {
-  const { orders, showToast } = useApp();
+  const { orders, addOrder, showToast } = useApp();
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const [formData, setFormData] = useState({
+    customer: "",
+    product: "",
+    amount: "$",
+    status: "Processing",
+  });
 
   const filtered = orders.filter((o) => {
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
@@ -22,7 +30,7 @@ export default function Orders() {
 
   const totalRevenue = filtered
     .filter((o) => o.status === "Delivered")
-    .reduce((sum, o) => sum + parseFloat(o.amount.replace(/[$,]/g, "")), 0);
+    .reduce((sum, o) => sum + parseFloat(o.amount.replace(/[$,]/g, "") || 0), 0);
 
   const handleExportCSV = () => {
     if (filtered.length === 0) {
@@ -55,6 +63,26 @@ export default function Orders() {
     showToast(`Exported ${filtered.length} orders to CSV successfully!`, "success");
   };
 
+  const handleSaveAdd = (e) => {
+    e.preventDefault();
+    if (!formData.customer.trim() || !formData.product.trim()) return;
+
+    let formattedAmount = formData.amount.trim();
+    if (!formattedAmount.startsWith("$")) {
+      formattedAmount = `$${formattedAmount}`;
+    }
+
+    addOrder({
+      customer: formData.customer.trim(),
+      product: formData.product.trim(),
+      amount: formattedAmount,
+      status: formData.status,
+    });
+
+    setFormData({ customer: "", product: "", amount: "$", status: "Processing" });
+    setIsAddModalOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -65,9 +93,14 @@ export default function Orders() {
             Track and manage all customer orders
           </p>
         </div>
-        <Button icon={Download} variant="outline" onClick={handleExportCSV}>
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button icon={Download} variant="outline" onClick={handleExportCSV}>
+            Export CSV
+          </Button>
+          <Button icon={Plus} variant="primary" onClick={() => setIsAddModalOpen(true)}>
+            New Order
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -127,14 +160,102 @@ export default function Orders() {
           </div>
         </div>
 
-        {/* Table reuse */}
-        <RecentOrders orders={filtered} />
+        {/* Table reuse with actions enabled and hide view all */}
+        <RecentOrders orders={filtered} showActions={true} hideViewAll={true} />
         {filtered.length === 0 && (
           <p className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">
             No orders match your filters.
           </p>
         )}
       </div>
+
+      {/* Add Order Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="card w-full max-w-md p-6 animate-bounce-in shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Create New Order</h2>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveAdd} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Customer Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.customer}
+                  onChange={(e) => setFormData((p) => ({ ...p, customer: e.target.value }))}
+                  placeholder="e.g. John Doe"
+                  className="input-base"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Product / Service
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.product}
+                  onChange={(e) => setFormData((p) => ({ ...p, product: e.target.value }))}
+                  placeholder="e.g. iPad Air 13-inch"
+                  className="input-base"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Amount
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.amount}
+                    onChange={(e) => setFormData((p) => ({ ...p, amount: e.target.value }))}
+                    placeholder="$799"
+                    className="input-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Initial Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData((p) => ({ ...p, status: e.target.value }))}
+                    className="input-base"
+                  >
+                    <option value="Processing">Processing</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Check}>
+                  Create Order
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

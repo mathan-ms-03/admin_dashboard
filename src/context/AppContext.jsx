@@ -187,11 +187,33 @@ export function AppProvider({ children }) {
   };
 
   // Order management actions
+  const addOrder = (newOrder) => {
+    const initials = newOrder.customer
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+    const orderWithDefaults = {
+      id: `#ORD-${String(orders.length + 1).padStart(3, "0")}`,
+      avatar: initials,
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+      ...newOrder,
+    };
+    setOrders((prev) => [orderWithDefaults, ...prev]);
+    showToast(`Order "${orderWithDefaults.id}" added successfully!`, "success");
+  };
+
   const updateOrderStatus = (id, status) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status } : o))
     );
     showToast(`Order ${id} status updated to ${status}`, "info");
+  };
+
+  const deleteOrder = (id) => {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+    showToast(`Order ${id} removed successfully`, "info");
   };
 
   return (
@@ -219,7 +241,9 @@ export function AppProvider({ children }) {
         updateUser,
         deleteUser,
         orders,
+        addOrder,
         updateOrderStatus,
+        deleteOrder,
         toast,
         showToast,
         dismissToast,

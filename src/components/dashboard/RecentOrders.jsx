@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { ArrowUpDown, ExternalLink } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import Badge from "../common/Badge";
 import Avatar from "../common/Avatar";
+import { useApp } from "../../hooks/useApp";
 
 const statusVariant = {
   Delivered:  "success",
@@ -10,6 +12,8 @@ const statusVariant = {
   Pending:    "warning",
   Cancelled:  "danger",
 };
+
+const statusOptions = ["Delivered", "Processing", "Shipped", "Pending", "Cancelled"];
 
 function SortHeader({ label, field, sortField, onSort }) {
   return (
@@ -25,7 +29,8 @@ function SortHeader({ label, field, sortField, onSort }) {
   );
 }
 
-export default function RecentOrders({ orders }) {
+export default function RecentOrders({ orders, showActions = false, hideViewAll = false }) {
+  const { updateOrderStatus, deleteOrder } = useApp();
   const [sortField, setSortField] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
 
@@ -51,12 +56,19 @@ export default function RecentOrders({ orders }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Recent Orders</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{orders.length} orders this week</p>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            {hideViewAll ? "All Orders" : "Recent Orders"}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{orders.length} orders listed</p>
         </div>
-        <button className="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium flex items-center gap-1">
-          View all <ExternalLink className="w-3 h-3" />
-        </button>
+        {!hideViewAll && (
+          <Link
+            to="/orders"
+            className="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium flex items-center gap-1"
+          >
+            View all <ExternalLink className="w-3 h-3" />
+          </Link>
+        )}
       </div>
 
       {/* Table */}
@@ -74,6 +86,11 @@ export default function RecentOrders({ orders }) {
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
                 Date
               </th>
+              {showActions && (
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
@@ -101,13 +118,38 @@ export default function RecentOrders({ orders }) {
                   {order.amount}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge variant={statusVariant[order.status] || "default"} dot>
-                    {order.status}
-                  </Badge>
+                  {showActions ? (
+                    <select
+                      value={order.status}
+                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                      className="text-xs font-medium py-1 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    >
+                      {statusOptions.map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Badge variant={statusVariant[order.status] || "default"} dot>
+                      {order.status}
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell whitespace-nowrap">
                   {order.date}
                 </td>
+                {showActions && (
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => deleteOrder(order.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                      title="Delete Order"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

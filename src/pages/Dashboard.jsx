@@ -1,4 +1,5 @@
-import { statsData, recentOrders, recentActivity, revenueData } from "../data/mockData";
+import { statsData, recentActivity, revenueData } from "../data/mockData";
+import { useApp } from "../hooks/useApp";
 import StatsCard from "../components/dashboard/StatsCard";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import ActivityFeed from "../components/dashboard/ActivityFeed";
@@ -6,6 +7,18 @@ import RevenueChart from "../components/dashboard/RevenueChart";
 import UserProfileCard from "../components/dashboard/UserProfileCard";
 
 export default function Dashboard() {
+  const { orders, users } = useApp();
+
+  const dynamicStats = statsData.map((stat) => {
+    if (stat.id === 2) {
+      return { ...stat, value: (24510 + users.length).toLocaleString() };
+    }
+    if (stat.id === 3) {
+      return { ...stat, value: orders.length.toString() };
+    }
+    return stat;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -20,7 +33,7 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {statsData.map((stat) => (
+        {dynamicStats.map((stat) => (
           <StatsCard key={stat.id} {...stat} />
         ))}
       </div>
@@ -32,7 +45,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Orders spans 2 cols */}
         <div className="lg:col-span-2">
-          <RecentOrders orders={recentOrders} />
+          <RecentOrders orders={orders.slice(0, 5)} />
         </div>
 
         {/* Activity feed */}
